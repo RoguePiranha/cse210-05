@@ -1,91 +1,66 @@
-import os
-import random
+import constants
 
-from game.casting.actor import Actor
-from game.casting.artifact import Artifact
 from game.casting.cast import Cast
-
+from game.scripting.script import Script
+from game.scripting.control_actors_action import ControlActorsAction
+from game.scripting.move_actors_action import MoveActorsAction
+from game.scripting.handle_collisions_action import HandleCollisionsAction
+from game.scripting.draw_actors_action import DrawActorsAction
 from game.directing.director import Director
-
 from game.services.keyboard_service import KeyboardService
 from game.services.video_service import VideoService
-
 from game.shared.color import Color
 from game.shared.point import Point
-
-
-FRAME_RATE = 12
-MAX_X = 900
-MAX_Y = 600
-CELL_SIZE = 15
-FONT_SIZE = 15
-COLS = 60
-ROWS = 40
-CAPTION = "Cycle"
-WHITE = Color(255, 255, 255)
-YELLOW = Color(255, 255, 0)
-BLUE = Color(0, 0, 255)
+from game.casting.snake import Snake
+from game.scripting.control_actors_snake2 import ControlActorsAction_player2
+from game.casting.score import Score
 
 
 def main():
-    
+
     # create the cast
     cast = Cast()
-    
-    # create the banner
-    banner = Actor()
-    banner.set_text("")
-    banner.set_font_size(FONT_SIZE)
-    banner.set_color(WHITE)
-    banner.set_position(Point(CELL_SIZE, 0))
-    cast.add_actor("banners", banner)
-    
-    # create player 1
-    x = int(MAX_X * 0.25)
-    y = int(MAX_Y / 2)
-    position1 = Point(x, y)
 
-    player1 = Actor()
-    player1.set_text("@")
-    player1.set_font_size(FONT_SIZE)
-    player1.set_color(BLUE)
-    player1.set_position(position1)
-    cast.add_actor("player1", player1)
+    # creates the label for the score
+    score1 = Score()
+    score1.set_text("Green: 0")
+    score1.label_name_player("Green")
+    cast.add_actor("score", score1)
 
-    # create player 2
-    x = int(MAX_X * 0.75)
-    y = int(MAX_Y / 2)
-    position2 = Point(x, y)
+    # creates second label for the score
+    score2 = Score()
+    score2.set_text("Purple: 0")
+    score2.label_name_player("Purple")
+    score2.set_position(Point(800, 0))
+    cast.add_actor("score", score2)
 
-    player2 = Actor()
-    player2.set_text("@")
-    player2.set_font_size(FONT_SIZE)
-    player2.set_color(YELLOW)
-    player2.set_position(position2)
-    cast.add_actor("player2", player2)
+    # creates first player
+    player_1 = Snake()
+    player_1.set_color(constants.YELLOW)
+    player_1.set_segment_color(constants.GREEN)
+    player_1.set_buttons(["w", "a", "s", "d"])
+    cast.add_actor("snakes", player_1)
 
-    
-    # create the artifact trail loop based on where the player moves
-    for i in range(player2.get_position()):
-        playerTrail = Artifact()
-        text = playerTrail.set_text("#")
+    # creates second player
+    player_2 = Snake()
+    player_2.set_color(constants.RED)
+    player_2.set_segment_color(constants.PURPLE)
+    player_2.set_buttons(["i", "j", "k", "l"])
+    cast.add_actor("snakes", player_2)
 
-        x = player2.get_position().get_x()
-        y = player2.get_position().get_y()
-        position = Point(x, y)
-        position = position.scale(CELL_SIZE)
-        
-        playerTrail.set_text(text)
-        playerTrail.set_font_size(FONT_SIZE)
-        playerTrail.set_color(YELLOW)
-        playerTrail.set_position(position)
-        cast.add_actor("playerTrail", playerTrail)
-    
     # start the game
-    keyboard_service = KeyboardService(CELL_SIZE)
-    video_service = VideoService(CAPTION, MAX_X, MAX_Y, CELL_SIZE, FRAME_RATE)
-    director = Director(keyboard_service, video_service)
-    director.start_game(cast)
+    keyboard_service = KeyboardService()
+    video_service = VideoService()
+
+    script = Script()
+    script.add_action("input", ControlActorsAction(keyboard_service))
+    script.add_action("input", ControlActorsAction_player2(keyboard_service))
+    script.add_action("update", MoveActorsAction())
+    script.add_action("update", HandleCollisionsAction())
+    script.add_action("output", DrawActorsAction(video_service))
+
+    director = Director(video_service)
+    director.start_game(cast, script)
 
 
 if __name__ == "__main__":
